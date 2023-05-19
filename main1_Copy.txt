@@ -1,0 +1,86 @@
+#include "timer_interrupts.h"
+#include "led.h"
+#include "keyboard.h"
+#include <LPC21xx.H>
+
+#define Dedector_bm (1<<10)
+/**********************************************/
+enum KeyboardState {RELASED,BUTTON_0, BUTTON_1, BUTTON_2, BUTTON_3};
+enum DetectorState {ACTIVE, INACTIVE};
+
+
+enum ServoState {CALLIB, IDLE, IN_PROGRESS};
+struct Servo {
+	enum ServoState eState; 
+	unsigned int uiCurrentPosition; 
+	unsigned int uiDesiredPosition;
+};
+struct Servo sServo;
+
+
+void DetectorInit(){
+	IO0DIR = IO0DIR&(~Dedector_bm);
+}
+
+enum DetectorState eReadDetector(){
+		if((IO0PIN&Dedector_bm) == 0){
+			return ACTIVE;
+		}
+		else{
+			return INACTIVE;
+		}
+}
+
+
+void vAutomat(){
+	enum LedState{RIGHT,LEFT,STOP,CALLIB};
+	static enum LedState eLedState = CALLIB;
+	
+	switch(eLedState){
+			case RIGHT:
+					LedStepRight();
+					if(ReadButton() == BUTTON_1){
+						eLedState = STOP;
+					}
+					break;
+				
+				case LEFT:
+					LedStepLeft();
+					if(BUTTON_1 == ReadButton()){
+						eLedState = STOP;
+					}
+					break;
+				
+			case STOP:
+					if(BUTTON_2 == ReadButton()){
+						eLedState = RIGHT;
+					}
+					else if(BUTTON_0 == ReadButton()){
+						eLedState = LEFT;
+					}
+				break;
+			case CALLIB:
+				if (eReadDetector() == ACTIVE){
+					eLedState = STOP;
+				}
+				else{
+					LedStepLeft();
+				}
+				break;
+		}
+}
+
+
+
+int main (){
+	
+	unsigned int iMainLoopCtr;
+	DetectorInit();
+	Timer0Interrupts_Init(20000,&vAutomat);
+	LedInit();
+	KeyboardInit();
+
+	while(1){
+	 	iMainLoopCtr++;
+	}
+}
