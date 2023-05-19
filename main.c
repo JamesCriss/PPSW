@@ -25,7 +25,6 @@ void Delay(unsigned int uiWaitMs){
 int main (){
 	int mainloop = 0;
 	ServoInit(20);
-	ServoGoTo(1000);
   KeyboardInit();
 	while(1){
 	 	Delay(100);
